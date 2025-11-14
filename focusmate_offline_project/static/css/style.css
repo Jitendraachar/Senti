@@ -1,0 +1,4 @@
+﻿/* add to your existing style.css or replace */
+.suggestions { margin-top:10px; display:flex; flex-direction:column; gap:8px }
+.suggestion { padding:8px; border-radius:8px; background:#f6f8ff; border-left:4px solid var(--accent) }
+input, textarea, select { font-family: inherit; font-size: 14px }

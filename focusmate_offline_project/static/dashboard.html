@@ -1,0 +1,15 @@
+﻿<!doctype html>
+<html lang='en'>
+<head><meta charset='utf-8'/><meta name='viewport' content='width=device-width,initial-scale=1'/><title>FocusMate — Dashboard</title><link rel='stylesheet' href='css/style.css'/><script src='https://cdn.jsdelivr.net/npm/chart.js'></script></head>
+<body>
+<div class='container'>
+  <header class='card header'><h1>FocusMate — Dashboard</h1><p class='muted'>Presentation demo — mood & task summary</p></header>
+  <main>
+    <section class='card charts-grid'>
+      <div class='chart-card'><h4>Recent Mood Distribution</h4><canvas id='moodChart'></canvas></div>
+      <div class='chart-card'><h4>Task Progress</h4><canvas id='taskChart'></canvas></div>
+      <div class='card summary-card'><h4>Quick Summary</h4><p id='summaryText'>Loading sample summary...</p><div id='suggestions' class='suggestions'></div></div>
+    </section>
+  </main>
+</div><script src='js/dashboard.js'></script></body>
+</html>
