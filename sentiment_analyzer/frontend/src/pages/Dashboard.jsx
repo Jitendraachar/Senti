@@ -149,7 +149,7 @@ function Dashboard() {
                 </div>
 
                 {/* Stats Cards */}
-                <div className="grid md:grid-cols-4 gap-6 mb-8">
+                <div className="grid md:grid-cols-5 gap-6 mb-8">
                     <div className="card text-center">
                         <div className="text-4xl mb-2">📝</div>
                         <div className="text-3xl font-bold text-gradient">{stats?.totalAnalyses || 0}</div>
@@ -172,6 +172,12 @@ function Dashboard() {
                         <div className="text-4xl mb-2">😔</div>
                         <div className="text-3xl font-bold text-red-400">{stats?.sentimentDistribution?.negative || 0}</div>
                         <div className="text-gray-300">Negative</div>
+                    </div>
+
+                    <div className="card text-center">
+                        <div className="text-4xl mb-2">😐</div>
+                        <div className="text-3xl font-bold text-blue-400">{stats?.sentimentDistribution?.neutral || 0}</div>
+                        <div className="text-gray-300">Neutral</div>
                     </div>
                 </div>
 

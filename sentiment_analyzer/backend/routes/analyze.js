@@ -10,9 +10,13 @@ let sentimentPipeline = null;
 
 async function getSentimentPipeline() {
     if (!sentimentPipeline) {
-        console.log('Loading sentiment analysis model...');
-        sentimentPipeline = await pipeline('sentiment-analysis');
-        console.log('Model loaded successfully!');
+        console.log('Loading 3-class sentiment analysis model...');
+        // Use model that supports positive, neutral, and negative
+        sentimentPipeline = await pipeline(
+            'sentiment-analysis',
+            'Xenova/twitter-roberta-base-sentiment-latest'
+        );
+        console.log('3-class sentiment model loaded successfully!');
     }
     return sentimentPipeline;
 }
@@ -64,13 +68,25 @@ router.post('/analyze', authenticateToken, async (req, res) => {
         const sentimentLabel = result[0].label.toLowerCase();
         const confidence = result[0].score;
 
-        // Map labels to our format
+        // Debug logging
+        console.log('=== QUICK ANALYSIS DEBUG ===');
+        console.log('Text:', text.substring(0, 100) + '...');
+        console.log('Model Label:', sentimentLabel);
+        console.log('Model Confidence:', confidence);
+
+        // The 3-class model returns: 'positive', 'neutral', or 'negative'
+        // Map to our format (handle variations in label naming)
         let sentiment = 'neutral';
         if (sentimentLabel.includes('pos')) {
             sentiment = 'positive';
         } else if (sentimentLabel.includes('neg')) {
             sentiment = 'negative';
+        } else if (sentimentLabel.includes('neu')) {
+            sentiment = 'neutral';
         }
+
+        console.log('Final Sentiment:', sentiment);
+        console.log('============================');
 
         // Generate suggestions
         const suggestions = generateSuggestions(sentiment, confidence);
