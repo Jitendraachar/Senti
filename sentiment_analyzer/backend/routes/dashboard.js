@@ -100,7 +100,13 @@ router.get('/trend', authenticateToken, async (req, res) => {
         const startDate = new Date();
         startDate.setDate(startDate.getDate() - days);
 
+        // Fetch both analyses and journals
         const analyses = await Analysis.find({
+            userId,
+            createdAt: { $gte: startDate }
+        }).sort({ createdAt: 1 });
+
+        const journals = await Journal.find({
             userId,
             createdAt: { $gte: startDate }
         }).sort({ createdAt: 1 });
@@ -122,7 +128,7 @@ router.get('/trend', authenticateToken, async (req, res) => {
             };
         }
 
-        // Populate with actual data
+        // Populate with analysis data
         analyses.forEach(analysis => {
             const dateStr = analysis.createdAt.toISOString().split('T')[0];
             if (dailyData[dateStr]) {
@@ -133,6 +139,20 @@ router.get('/trend', authenticateToken, async (req, res) => {
                 const sentimentValue = analysis.sentiment === 'positive' ? 1 :
                     analysis.sentiment === 'negative' ? -1 : 0;
                 dailyData[dateStr].score += sentimentValue * analysis.confidence;
+            }
+        });
+
+        // Populate with journal data
+        journals.forEach(journal => {
+            const dateStr = journal.createdAt.toISOString().split('T')[0];
+            if (dailyData[dateStr]) {
+                dailyData[dateStr][journal.sentiment]++;
+                dailyData[dateStr].count++;
+
+                // Calculate sentiment score (-1 to 1)
+                const sentimentValue = journal.sentiment === 'positive' ? 1 :
+                    journal.sentiment === 'negative' ? -1 : 0;
+                dailyData[dateStr].score += sentimentValue * journal.confidence;
             }
         });
 
