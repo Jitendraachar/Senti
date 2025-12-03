@@ -26,6 +26,17 @@ const journalSchema = new mongoose.Schema({
         min: 0,
         max: 1
     },
+    emotions: [{
+        emotion: {
+            type: String,
+            enum: ['joy', 'sadness', 'anger', 'fear', 'surprise', 'disgust', 'love', 'neutral']
+        },
+        score: {
+            type: Number,
+            min: 0,
+            max: 1
+        }
+    }],
     suggestions: [{
         type: String
     }],

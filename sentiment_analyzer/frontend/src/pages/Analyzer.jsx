@@ -57,6 +57,20 @@ function Analyzer() {
         }
     };
 
+    const getEmotionEmoji = (emotion) => {
+        const emojiMap = {
+            joy: '😄',
+            sadness: '😢',
+            anger: '😠',
+            fear: '😨',
+            surprise: '😲',
+            disgust: '🤢',
+            love: '❤️',
+            neutral: '😐'
+        };
+        return emojiMap[emotion] || '😐';
+    };
+
     return (
         <div className="min-h-screen p-4 md:p-8">
             <div className="max-w-6xl mx-auto">
@@ -137,6 +151,24 @@ function Analyzer() {
                                         <h3 className="text-3xl font-bold capitalize mb-2">{result.sentiment}</h3>
                                         <p className="text-lg">Confidence: {(result.confidence * 100).toFixed(1)}%</p>
                                     </div>
+
+                                    {/* Emotions Display */}
+                                    {result.emotions && result.emotions.length > 0 && (
+                                        <div className="mb-4 p-4 bg-purple-500/10 rounded-xl">
+                                            <h4 className="text-sm font-bold mb-3 text-purple-300">Detected Emotions:</h4>
+                                            <div className="flex gap-3 flex-wrap justify-center">
+                                                {result.emotions.map((emotion, idx) => (
+                                                    <div key={idx} className="flex items-center gap-2 px-3 py-2 bg-white/10 rounded-lg">
+                                                        <span className="text-2xl">{getEmotionEmoji(emotion.emotion)}</span>
+                                                        <div>
+                                                            <div className="text-sm font-bold capitalize">{emotion.emotion}</div>
+                                                            <div className="text-xs text-gray-400">{(emotion.score * 100).toFixed(0)}%</div>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
 
                                     <div className="glass p-4 rounded-xl">
                                         <p className="text-gray-300 italic">"{result.text}"</p>

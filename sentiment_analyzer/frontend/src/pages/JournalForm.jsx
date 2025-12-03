@@ -6,6 +6,8 @@ function JournalForm() {
     const { id } = useParams();
     const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
+    const [aiPrompt, setAiPrompt] = useState(null);
+    const [showPrompt, setShowPrompt] = useState(false);
     const [formData, setFormData] = useState({
         title: '',
         content: '',
@@ -84,6 +86,31 @@ function JournalForm() {
         });
     };
 
+    const fetchAIPrompt = async () => {
+        try {
+            const token = localStorage.getItem('token');
+            const response = await axios.get('/api/prompts/daily', {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            setAiPrompt(response.data.prompt);
+            setShowPrompt(true);
+        } catch (err) {
+            console.error('Error fetching prompt:', err);
+            alert('Failed to fetch AI prompt');
+        }
+    };
+
+    const usePrompt = () => {
+        if (aiPrompt) {
+            setFormData({
+                ...formData,
+                title: `Reflection: ${aiPrompt.category}`,
+                content: `${aiPrompt.text}\n\n`
+            });
+            setShowPrompt(false);
+        }
+    };
+
     return (
         <div className="min-h-screen p-4 md:p-8">
             <div className="max-w-4xl mx-auto">
@@ -142,6 +169,39 @@ function JournalForm() {
                                 <option value="neutral">😐 Neutral</option>
                             </select>
                         </div>
+
+                        {/* AI Prompt Suggestion */}
+                        {!isEditing && (
+                            <div>
+                                <label className="block text-sm font-semibold mb-2">
+                                    Need inspiration?
+                                </label>
+                                <button
+                                    type="button"
+                                    onClick={fetchAIPrompt}
+                                    className="btn-secondary w-full"
+                                >
+                                    ✨ Get AI Writing Prompt
+                                </button>
+                                {showPrompt && aiPrompt && (
+                                    <div className="mt-3 p-4 bg-purple-500/20 border border-purple-500 rounded-lg">
+                                        <div className="flex justify-between items-start mb-2">
+                                            <h4 className="font-bold text-purple-300">AI Suggestion</h4>
+                                            <button onClick={() => setShowPrompt(false)} className="text-gray-400 hover:text-white">×</button>
+                                        </div>
+                                        <p className="text-lg mb-2">{aiPrompt.text}</p>
+                                        <p className="text-sm text-gray-400 mb-3">{aiPrompt.reason}</p>
+                                        <button
+                                            type="button"
+                                            onClick={usePrompt}
+                                            className="btn-primary text-sm"
+                                        >
+                                            Use This Prompt
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                        )}
 
                         {/* Content */}
                         <div>

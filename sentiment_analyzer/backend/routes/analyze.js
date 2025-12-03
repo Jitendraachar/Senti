@@ -7,6 +7,7 @@ const router = express.Router();
 
 // Initialize sentiment analysis pipeline (lazy loading)
 let sentimentPipeline = null;
+let emotionPipeline = null;
 
 async function getSentimentPipeline() {
     if (!sentimentPipeline) {
@@ -21,9 +22,24 @@ async function getSentimentPipeline() {
     return sentimentPipeline;
 }
 
-// Generate suggestions based on sentiment
-function generateSuggestions(sentiment, confidence) {
+async function getEmotionPipeline() {
+    if (!emotionPipeline) {
+        console.log('Loading emotion detection model...');
+        emotionPipeline = await pipeline(
+            'text-classification',
+            'Xenova/distilbert-base-uncased-emotion'
+        );
+        console.log('Emotion detection model loaded successfully!');
+    }
+    return emotionPipeline;
+}
+
+// Generate suggestions based on sentiment and emotions
+function generateSuggestions(sentiment, confidence, emotions = []) {
     const suggestions = [];
+
+    // Get dominant emotion if available
+    const dominantEmotion = emotions.length > 0 ? emotions[0].emotion : null;
 
     if (sentiment === 'positive') {
         suggestions.push('Great mindset! Keep up the positive energy.');
@@ -31,6 +47,11 @@ function generateSuggestions(sentiment, confidence) {
         suggestions.push('Document what made you feel good to repeat it.');
         if (confidence > 0.9) {
             suggestions.push('Your enthusiasm is contagious! Consider mentoring someone.');
+        }
+        if (dominantEmotion === 'joy') {
+            suggestions.push('Celebrate this moment! Consider doing something special.');
+        } else if (dominantEmotion === 'love') {
+            suggestions.push('Express your appreciation to those who matter to you.');
         }
     } else if (sentiment === 'negative') {
         suggestions.push('Take a short break and practice deep breathing.');
@@ -40,10 +61,23 @@ function generateSuggestions(sentiment, confidence) {
         if (confidence > 0.8) {
             suggestions.push('If these feelings persist, consider talking to a professional.');
         }
+        if (dominantEmotion === 'sadness') {
+            suggestions.push('It\'s okay to feel sad. Allow yourself to process these emotions.');
+            suggestions.push('Try listening to uplifting music or watching something comforting.');
+        } else if (dominantEmotion === 'anger') {
+            suggestions.push('Take a moment to cool down before reacting.');
+            suggestions.push('Physical activity can help release tension and anger.');
+        } else if (dominantEmotion === 'fear') {
+            suggestions.push('Identify what\'s causing the fear and break it down into manageable parts.');
+            suggestions.push('Practice grounding techniques to stay present.');
+        }
     } else {
         suggestions.push('Maintain balance in your daily routine.');
         suggestions.push('Set small, achievable goals for today.');
         suggestions.push('Practice gratitude by noting three positive things.');
+        if (dominantEmotion === 'surprise') {
+            suggestions.push('Embrace the unexpected and stay curious.');
+        }
     }
 
     return suggestions;
@@ -86,10 +120,29 @@ router.post('/analyze', authenticateToken, async (req, res) => {
         }
 
         console.log('Final Sentiment:', sentiment);
+
+        // Perform emotion detection
+        const emotionClassifier = await getEmotionPipeline();
+        const emotionResults = await emotionClassifier(text, { topk: 3 }); // Get top 3 emotions
+
+        const emotions = emotionResults.map(e => ({
+            emotion: e.label.toLowerCase(),
+            score: e.score
+        }));
+
+        console.log('Detected Emotions:', emotions);
         console.log('============================');
 
+        // Generate metadata
+        const now = new Date();
+        const metadata = {
+            timeOfDay: now.getHours() < 12 ? 'morning' : now.getHours() < 17 ? 'afternoon' : 'evening',
+            dayOfWeek: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][now.getDay()],
+            wordCount: text.split(/\s+/).length
+        };
+
         // Generate suggestions
-        const suggestions = generateSuggestions(sentiment, confidence);
+        const suggestions = generateSuggestions(sentiment, confidence, emotions);
 
         // Save analysis to database
         const analysis = new Analysis({
@@ -97,7 +150,9 @@ router.post('/analyze', authenticateToken, async (req, res) => {
             text,
             sentiment,
             confidence,
-            suggestions
+            emotions,
+            suggestions,
+            metadata
         });
 
         await analysis.save();
@@ -109,7 +164,9 @@ router.post('/analyze', authenticateToken, async (req, res) => {
                 text,
                 sentiment,
                 confidence: Math.round(confidence * 100) / 100,
+                emotions,
                 suggestions,
+                metadata,
                 createdAt: analysis.createdAt
             }
         });

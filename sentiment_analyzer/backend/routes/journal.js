@@ -7,6 +7,7 @@ const router = express.Router();
 
 // Shared sentiment analysis pipeline
 let sentimentPipeline = null;
+let emotionPipeline = null;
 
 async function getSentimentPipeline() {
     if (!sentimentPipeline) {
@@ -21,9 +22,22 @@ async function getSentimentPipeline() {
     return sentimentPipeline;
 }
 
-// Generate suggestions based on sentiment
-function generateSuggestions(sentiment, confidence) {
+async function getEmotionPipeline() {
+    if (!emotionPipeline) {
+        console.log('Loading emotion detection model...');
+        emotionPipeline = await pipeline(
+            'text-classification',
+            'Xenova/distilbert-base-uncased-emotion'
+        );
+        console.log('Emotion detection model loaded successfully!');
+    }
+    return emotionPipeline;
+}
+
+// Generate suggestions based on sentiment and emotions
+function generateSuggestions(sentiment, confidence, emotions = []) {
     const suggestions = [];
+    const dominantEmotion = emotions.length > 0 ? emotions[0].emotion : null;
 
     if (sentiment === 'positive') {
         suggestions.push('Wonderful entry! Reflect on what made today special.');
@@ -32,6 +46,11 @@ function generateSuggestions(sentiment, confidence) {
         if (confidence > 0.9) {
             suggestions.push('Your joy is evident! Document the details to revisit later.');
         }
+        if (dominantEmotion === 'joy') {
+            suggestions.push('Celebrate this moment! Consider doing something special.');
+        } else if (dominantEmotion === 'love') {
+            suggestions.push('Express your appreciation to those who matter to you.');
+        }
     } else if (sentiment === 'negative') {
         suggestions.push('Thank you for expressing your feelings. Writing helps process emotions.');
         suggestions.push('Consider what small step could improve your situation.');
@@ -39,6 +58,13 @@ function generateSuggestions(sentiment, confidence) {
         suggestions.push('Practice self-compassion and be gentle with yourself.');
         if (confidence > 0.8) {
             suggestions.push('If you\'re struggling, reach out to someone you trust.');
+        }
+        if (dominantEmotion === 'sadness') {
+            suggestions.push('It\'s okay to feel sad. Allow yourself to process these emotions.');
+        } else if (dominantEmotion === 'anger') {
+            suggestions.push('Take a moment to cool down before reacting.');
+        } else if (dominantEmotion === 'fear') {
+            suggestions.push('Identify what\'s causing the fear and break it down.');
         }
     } else {
         suggestions.push('Reflection is valuable regardless of mood.');
@@ -58,13 +84,12 @@ async function analyzeSentiment(text) {
     const confidence = result[0].score;
 
     // Debug logging
-    console.log('=== SENTIMENT ANALYSIS DEBUG ===');
+    console.log('=== JOURNAL SENTIMENT ANALYSIS ===');
     console.log('Text:', text.substring(0, 100) + '...');
     console.log('Model Label:', sentimentLabel);
     console.log('Model Confidence:', confidence);
 
     // The 3-class model returns: 'positive', 'neutral', or 'negative'
-    // Map to our format (handle variations in label naming)
     let sentiment = 'neutral';
     if (sentimentLabel.includes('pos')) {
         sentiment = 'positive';
@@ -75,11 +100,22 @@ async function analyzeSentiment(text) {
     }
 
     console.log('Final Sentiment:', sentiment);
-    console.log('================================');
 
-    const suggestions = generateSuggestions(sentiment, confidence);
+    // Perform emotion detection
+    const emotionClassifier = await getEmotionPipeline();
+    const emotionResults = await emotionClassifier(text, { topk: 3 });
 
-    return { sentiment, confidence, suggestions };
+    const emotions = emotionResults.map(e => ({
+        emotion: e.label.toLowerCase(),
+        score: e.score
+    }));
+
+    console.log('Detected Emotions:', emotions);
+    console.log('==================================');
+
+    const suggestions = generateSuggestions(sentiment, confidence, emotions);
+
+    return { sentiment, confidence, suggestions, emotions };
 }
 
 // Create new journal entry
@@ -92,7 +128,7 @@ router.post('/journals', authenticateToken, async (req, res) => {
         }
 
         // Analyze sentiment of the journal content
-        const { sentiment, confidence, suggestions } = await analyzeSentiment(content);
+        const { sentiment, confidence, suggestions, emotions } = await analyzeSentiment(content);
 
         // Create journal entry
         const journal = new Journal({
@@ -101,6 +137,7 @@ router.post('/journals', authenticateToken, async (req, res) => {
             content,
             sentiment,
             confidence,
+            emotions,
             suggestions,
             tags: tags || [],
             mood: mood || 'neutral'
@@ -116,6 +153,7 @@ router.post('/journals', authenticateToken, async (req, res) => {
                 content: journal.content,
                 sentiment: journal.sentiment,
                 confidence: Math.round(confidence * 100) / 100,
+                emotions: journal.emotions,
                 suggestions: journal.suggestions,
                 tags: journal.tags,
                 mood: journal.mood,
@@ -226,9 +264,10 @@ router.put('/journals/:id', authenticateToken, async (req, res) => {
         if (content) {
             journal.content = content;
             // Re-analyze sentiment if content changed
-            const { sentiment, confidence, suggestions } = await analyzeSentiment(content);
+            const { sentiment, confidence, suggestions, emotions } = await analyzeSentiment(content);
             journal.sentiment = sentiment;
             journal.confidence = confidence;
+            journal.emotions = emotions;
             journal.suggestions = suggestions;
         }
         if (tags !== undefined) journal.tags = tags;
@@ -244,6 +283,7 @@ router.put('/journals/:id', authenticateToken, async (req, res) => {
                 content: journal.content,
                 sentiment: journal.sentiment,
                 confidence: Math.round(journal.confidence * 100) / 100,
+                emotions: journal.emotions,
                 suggestions: journal.suggestions,
                 tags: journal.tags,
                 mood: journal.mood,

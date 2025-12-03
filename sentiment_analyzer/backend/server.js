@@ -6,6 +6,15 @@ import authRoutes from './routes/auth.js';
 import analyzeRoutes from './routes/analyze.js';
 import dashboardRoutes from './routes/dashboard.js';
 import journalRoutes from './routes/journal.js';
+import resultsRoutes from './routes/results.js';
+import insightsRoutes from './routes/insights.js';
+import streaksRoutes from './routes/streaks.js';
+import searchRoutes from './routes/search.js';
+import appointmentsRoutes from './routes/appointments.js';
+import promptsRoutes from './routes/prompts.js';
+import predictionsRoutes from './routes/predictions.js';
+import sharingRoutes from './routes/sharing.js';
+import accountabilityRoutes from './routes/accountability.js';
 
 // Load environment variables
 dotenv.config();
@@ -27,6 +36,15 @@ app.use('/api/auth', authRoutes);
 app.use('/api', analyzeRoutes);
 app.use('/api', journalRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/results', resultsRoutes);
+app.use('/api/insights', insightsRoutes);
+app.use('/api/streaks', streaksRoutes);
+app.use('/api/search', searchRoutes);
+app.use('/api/appointments', appointmentsRoutes);
+app.use('/api/prompts', promptsRoutes);
+app.use('/api/predictions', predictionsRoutes);
+app.use('/api/sharing', sharingRoutes);
+app.use('/api/accountability', accountabilityRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
