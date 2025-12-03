@@ -28,14 +28,31 @@ function Analyzer() {
             const response = await axios.post(
                 '/api/analyze',
                 { text },
-                { headers: { Authorization: `Bearer ${token}` } }
+                {
+                    headers: { Authorization: `Bearer ${token}` },
+                    timeout: 120000 // 2 minutes timeout for model loading
+                }
             );
 
             setResult(response.data.analysis);
             setHistory([response.data.analysis, ...history.slice(0, 4)]);
             setText('');
+            setError(''); // Clear any previous errors
         } catch (err) {
-            setError(err.response?.data?.error || 'Analysis failed');
+            console.error('Analysis error:', err);
+
+            // Better error messages based on error type
+            if (err.code === 'ECONNABORTED' || err.message.includes('timeout')) {
+                setError('⏳ AI models are loading for the first time. This can take up to 2 minutes. Please wait and try again in 30 seconds.');
+            } else if (err.response?.status === 500) {
+                setError('🤖 AI models are initializing. Please wait 30 seconds and try again. (First analysis after server restart takes longer)');
+            } else if (err.response?.status === 401) {
+                setError('🔒 Session expired. Please logout and login again.');
+            } else if (err.message === 'Network Error') {
+                setError('🔌 Cannot connect to server. Please check if backend is running on port 5000.');
+            } else {
+                setError(err.response?.data?.error || '❌ Analysis failed. Please try again.');
+            }
         } finally {
             setLoading(false);
         }
@@ -112,7 +129,14 @@ function Analyzer() {
                                     className="btn-primary w-full"
                                     disabled={loading || !text.trim()}
                                 >
-                                    {loading ? 'Analyzing...' : 'Analyze Sentiment'}
+                                    {loading ? (
+                                        <span className="flex items-center justify-center gap-2">
+                                            <span className="animate-spin">⏳</span>
+                                            Analyzing... (First time may take 30-60s)
+                                        </span>
+                                    ) : (
+                                        'Analyze Sentiment'
+                                    )}
                                 </button>
                             </form>
                         </div>

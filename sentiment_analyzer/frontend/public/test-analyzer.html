@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Analyzer Test</title>
+</head>
+<body>
+    <h1>Direct Analyzer Test</h1>
+    <textarea id="text" rows="4" cols="50" placeholder="Enter text to analyze">I am feeling great today!</textarea><br>
+    <button onclick="testAnalyze()">Test Analyze</button>
+    <div id="result"></div>
+
+    <script>
+        async function testAnalyze() {
+            const text = document.getElementById('text').value;
+            const token = localStorage.getItem('token');
+            
+            document.getElementById('result').innerHTML = 'Testing... (may take 30-60s first time)';
+            
+            try {
+                const response = await fetch('http://localhost:5000/api/analyze', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ text })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    document.getElementById('result').innerHTML = `
+                        <h2>Success!</h2>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                } else {
+                    document.getElementById('result').innerHTML = `
+                        <h2>Error (${response.status})</h2>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                        <p>Token: ${token ? 'Present' : 'Missing'}</p>
+                    `;
+                }
+            } catch (error) {
+                document.getElementById('result').innerHTML = `
+                    <h2>Network Error</h2>
+                    <pre>${error.message}</pre>
+                    <p>Token: ${token ? 'Present' : 'Missing'}</p>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>

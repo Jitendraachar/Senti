@@ -1,0 +1,18 @@
+﻿// Generate suggestions
+function generateSuggestions(sentiment, confidence, emotions = []) {
+    const suggestions = [];
+    
+    if (sentiment === 'POSITIVE' || sentiment === 'positive') {
+        suggestions.push('Great mindset! Keep up the positive energy.');
+        suggestions.push('Share your positivity with others today.');
+    } else if (sentiment === 'NEGATIVE' || sentiment === 'negative') {
+        suggestions.push('Take time for self-care.');
+        suggestions.push('Consider talking to someone you trust.');
+        suggestions.push('Try a short walk or breathing exercise.');
+    } else {
+        suggestions.push('Maintain balance in your daily routine.');
+        suggestions.push('Set small, achievable goals for today.');
+    }
+    
+    return suggestions;
+}
