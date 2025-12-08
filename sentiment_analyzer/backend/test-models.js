@@ -6,7 +6,7 @@ console.log('This will download models (may take 1-2 minutes)...\n');
 async function testModels() {
     try {
         console.log('1. Testing sentiment analysis model...');
-        const sentiment = await pipeline('sentiment-analysis', 'Xenova/twitter-roberta-base-sentiment-latest');
+        const sentiment = await pipeline('sentiment-analysis', 'Xenova/distilbert-base-uncased-finetuned-sst-2-english');
         console.log('✅ Sentiment model loaded!');
 
         const result = await sentiment('I am happy');

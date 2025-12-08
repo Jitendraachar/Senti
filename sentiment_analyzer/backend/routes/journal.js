@@ -11,13 +11,13 @@ let emotionPipeline = null;
 
 async function getSentimentPipeline() {
     if (!sentimentPipeline) {
-        console.log('Loading 3-class sentiment analysis model...');
-        // Use model that supports positive, neutral, and negative
+        console.log('Loading sentiment analysis model...');
+        // Use simpler, more reliable model
         sentimentPipeline = await pipeline(
             'sentiment-analysis',
-            'Xenova/twitter-roberta-base-sentiment-latest'
+            'Xenova/distilbert-base-uncased-finetuned-sst-2-english'
         );
-        console.log('3-class sentiment model loaded successfully!');
+        console.log('Sentiment model loaded successfully!');
     }
     return sentimentPipeline;
 }
@@ -89,28 +89,34 @@ async function analyzeSentiment(text) {
     console.log('Model Label:', sentimentLabel);
     console.log('Model Confidence:', confidence);
 
-    // The 3-class model returns: 'positive', 'neutral', or 'negative'
+    // The 2-class model returns: 'positive' or 'negative'
+    // Map to 3 classes by using confidence threshold for neutral
     let sentiment = 'neutral';
     if (sentimentLabel.includes('pos')) {
-        sentiment = 'positive';
+        sentiment = confidence > 0.6 ? 'positive' : 'neutral';
     } else if (sentimentLabel.includes('neg')) {
-        sentiment = 'negative';
-    } else if (sentimentLabel.includes('neu')) {
-        sentiment = 'neutral';
+        sentiment = confidence > 0.6 ? 'negative' : 'neutral';
     }
 
     console.log('Final Sentiment:', sentiment);
 
-    // Perform emotion detection
-    const emotionClassifier = await getEmotionPipeline();
-    const emotionResults = await emotionClassifier(text, { topk: 3 });
+    // Perform emotion detection (optional - graceful fallback if it fails)
+    let emotions = [];
+    try {
+        const emotionClassifier = await getEmotionPipeline();
+        const emotionResults = await emotionClassifier(text, { topk: 3 });
 
-    const emotions = emotionResults.map(e => ({
-        emotion: e.label.toLowerCase(),
-        score: e.score
-    }));
+        emotions = emotionResults.map(e => ({
+            emotion: e.label.toLowerCase(),
+            score: e.score
+        }));
 
-    console.log('Detected Emotions:', emotions);
+        console.log('Detected Emotions:', emotions);
+    } catch (emotionError) {
+        console.warn('⚠️  Emotion detection failed, continuing without emotions:', emotionError.message);
+        emotions = []; // Empty array if emotion detection fails
+    }
+
     console.log('==================================');
 
     const suggestions = generateSuggestions(sentiment, confidence, emotions);

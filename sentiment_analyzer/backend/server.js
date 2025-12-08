@@ -31,6 +31,30 @@ mongoose.connect(process.env.MONGODB_URI)
     .then(() => console.log('✅ Connected to MongoDB'))
     .catch((err) => console.error('❌ MongoDB connection error:', err));
 
+// Pre-load AI models on server startup
+async function preloadModels() {
+    console.log('\n🤖 Pre-loading AI models...');
+    try {
+        const { pipeline } = await import('@xenova/transformers');
+
+        console.log('Loading sentiment analysis model...');
+        await pipeline('sentiment-analysis', 'Xenova/distilbert-base-uncased-finetuned-sst-2-english');
+        console.log('✅ Sentiment model loaded');
+
+        console.log('Loading emotion detection model...');
+        await pipeline('text-classification', 'Xenova/distilbert-base-uncased-emotion');
+        console.log('✅ Emotion model loaded');
+
+        console.log('🎉 All AI models pre-loaded successfully!\n');
+    } catch (error) {
+        console.error('⚠️  Warning: Failed to pre-load AI models:', error.message);
+        console.error('The application will attempt to load models on-demand.\n');
+    }
+}
+
+// Pre-load models after MongoDB connection
+preloadModels();
+
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api', analyzeRoutes);
